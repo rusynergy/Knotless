@@ -44,15 +44,38 @@ export function compileRouting(source: string): { defaultTag: string; rules: Rul
     const fail = (message: string): never => { throw new Error(`Строка ${index + 1}: ${message}`); };
     const def = /^default:\s*(proxy|direct|block)$/.exec(line);
     if (def) { if (hasDefault) fail('default указан дважды.'); hasDefault = true; defaultTag = def[1]; return; }
-    const match = /^(domain|ip|port|network)\((.+)\)\s*->\s*(proxy|direct|block)$/.exec(line);
+    const match = /^(.+)\s*->\s*(proxy|direct|block)$/.exec(line);
     if (!match) fail('ожидается domain(...), ip(...), port(...) или network(...) -> действие.');
-    const [, kind, rawValue, target] = match!; const value = rawValue.trim();
-    if (!value) fail('пустое условие.');
+    const [, conditions, target] = match!;
     const rule: Rule = { type: 'field', outboundTag: target };
+    // Split conjunctions only outside condition parentheses; regex groups and
+    // escaped parentheses inside domain expressions remain intact.
+    const parts:string[]=[]; let start=0, depth=0, escaped=false, inClass=false;
+    for(let i=0;i<conditions.length;i++){
+      const c=conditions[i];
+      if(escaped){escaped=false;continue;} if(c==='\\'){escaped=true;continue;}
+      if(c==='[')inClass=true; if(c===']')inClass=false; if(inClass)continue;
+      if(c==='(')depth++; if(c===')')depth--;
+      if(depth<0)fail('лишняя закрывающая скобка.');
+      if(depth===0 && conditions.slice(i,i+2)==='&&'){parts.push(conditions.slice(start,i).trim());start=i+2;i++;}
+    }
+    if(depth!==0)fail('незакрытая скобка.');
+    parts.push(conditions.slice(start).trim());
+    for(const part of parts){
+    const condition=/^(domain|ip|port|network)\((.+)\)$/.exec(part);
+    if(!condition)fail('ожидается условие domain(...), ip(...), port(...) или network(...); условия соединяются через &&.');
+    const [,kind,rawValue]=condition!; const value=rawValue.trim();
+    if(Object.prototype.hasOwnProperty.call(rule,kind))fail(`повтор условия ${kind} в одной строке не поддерживается.`);
+    if (!value) fail('пустое условие.');
     if (kind === 'domain') {
-      const v = value.replace(/^([a-z]+):\s*/, '$1:');
-      if (!/^(domain|full|contains|regexp|geosite):.+/.test(v)) fail('нужен префикс domain:, full:, contains:, regexp: или geosite:.');
-      rule.domain = [v.replace(/^contains:/, 'keyword:')];
+      // A separator introduces another prefixed matcher. Commas in regex
+      // quantifiers, e.g. {1,3}, must not split the expression.
+      rule.domain = value.split(/,\s*(?=(?:domain|full|contains|regexp|geosite)\s*:)/).map(item=>{
+        const v=item.trim().replace(/^([a-z]+):\s*/, '$1:');
+        if (!/^(domain|full|contains|regexp|geosite):\S/.test(v)) fail('нужен префикс domain:, full:, contains:, regexp: или geosite:.');
+        if(!v.startsWith('regexp:') && /[,\s]/.test(v))fail('некорректный элемент списка доменов: у каждого элемента нужен префикс.');
+        return v.replace(/^contains:/, 'keyword:');
+      });
     }
     if (kind === 'ip') {
       const values = value.split(',').map(item => item.trim());
@@ -63,11 +86,13 @@ export function compileRouting(source: string): { defaultTag: string; rules: Rul
       rule.ip = values;
     }
     if (kind === 'port') {
-      if (!/^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$/.test(value)) fail('некорректные порты.');
-      for (const range of value.split(',')) { const n = range.split('-').map(Number); if (n.some(x => x < 1 || x > 65535) || (n.length === 2 && n[0] > n[1])) fail('порт вне диапазона.'); }
-      rule.port = value;
+      const ports=value.split(',').map(item=>item.trim());
+      if (ports.some(item=>!/^\d+(?:\s*-\s*\d+)?$/.test(item))) fail('некорректные порты.');
+      for (const range of ports) { const n = range.split('-').map(Number); if (n.some(x => x < 1 || x > 65535) || (n.length === 2 && n[0] > n[1])) fail('порт вне диапазона.'); }
+      rule.port = ports.map(item=>item.replace(/\s/g,'')).join(',');
     }
-    if (kind === 'network') { if (!/^(tcp|udp|tcp,udp|udp,tcp)$/.test(value)) fail('ожидается tcp или udp.'); rule.network = value; }
+    if (kind === 'network') { const networks=value.split(',').map(item=>item.trim()).join(',');if (!/^(tcp|udp|tcp,udp|udp,tcp)$/.test(networks)) fail('ожидается tcp или udp.'); rule.network = networks; }
+    }
     rules.push(rule);
   });
   return { defaultTag, rules };

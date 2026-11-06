@@ -6,6 +6,20 @@ describe('VLESS import', () => {
   it('rejects unsupported and insecure links instead of silently changing semantics', () => { expect(() => parseVless(link + '&')).not.toThrow(); expect(() => parseVless(link.replace('type=tcp', 'type=kcp'))).toThrow(); expect(() => parseVless(link.replace('fp=chrome', 'allowInsecure=1'))).toThrow(); expect(() => parseVless(link.replace('pbk=abc&', ''))).toThrow(); });
 });
 describe('routing', () => {
+  it('normalizes port lists and ranges without merging invalid numbers',()=>{
+    expect(compileRouting('port(4244, 7985, 5242 - 5243, 3478-3497,5221-5222) -> proxy').rules[0].port).toBe('4244,7985,5242-5243,3478-3497,5221-5222');
+    for(const ports of ['80,','80,,443','4 43','0','65536','599-596'])expect(()=>compileRouting(`port(${ports})->proxy`)).toThrow();
+  });
+  it('keeps AND conditions in one Xray rule instead of broadening UDP routing',()=>{
+    expect(compileRouting('default: direct\nnetwork(udp) && port(596-599, 1400) -> proxy').rules).toEqual([{type:'field',outboundTag:'proxy',network:'udp',port:'596-599,1400'}]);
+    expect(compileRouting('port(599, 1400) && network(udp)->proxy').rules[0]).toMatchObject({network:'udp',port:'599,1400'});
+    for(const condition of ['network(udp) &&','network(udp) || port(443)','port(80) && port(443)','network(udp) port(443)'])expect(()=>compileRouting(`${condition}->proxy`)).toThrow();
+  });
+  it('compiles each domain matcher separately and preserves regular expressions',()=>{
+    expect(compileRouting('domain(contains: t.me, contains: telegram.org, domain: example.com)->proxy').rules[0].domain).toEqual(['keyword:t.me','keyword:telegram.org','domain:example.com']);
+    expect(compileRouting('domain(regexp: ^(foo|bar)[0-9]{1,3}\\.example$, full: example.com) && network(tcp, udp)->proxy').rules[0]).toMatchObject({domain:['regexp:^(foo|bar)[0-9]{1,3}\\.example$','full:example.com'],network:'tcp,udp'});
+    for(const domains of ['contains: a,','contains: a,, full: b','contains: a, b'])expect(()=>compileRouting(`domain(${domains})->proxy`)).toThrow();
+  });
   it('compiles comma-separated CIDRs into one Xray rule', () => {
     const source = 'ip(91.108.56.0/22, 91.108.4.0/22, 91.108.8.0/22, 91.108.16.0/22, 91.108.12.0/22, 149.154.160.0/20, 91.105.192.0/23, 91.108.20.0/22, 185.76.151.0/24)->proxy';
     const expected = [{ type: 'field', outboundTag: 'proxy', ip: ['91.108.56.0/22', '91.108.4.0/22', '91.108.8.0/22', '91.108.16.0/22', '91.108.12.0/22', '149.154.160.0/20', '91.105.192.0/23', '91.108.20.0/22', '185.76.151.0/24'] }];

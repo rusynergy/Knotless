@@ -23,6 +23,10 @@ The screenshot shows fictional servers on example.com domains. The connection is
 - DNS over TCP or DoH: Quad9 (default), Google, Cloudflare, OpenDNS, Yandex, or a custom resolver.
 - Live traffic statistics and graph, connection health checks, optional TUN recovery, tray menu, light and dark themes.
 
+## Version 0.3.4
+
+Port lists now accept spaces after commas and around range separators. Domain lists compile into separate Xray matchers. Combine different condition types with `&&`, for example: `network(udp) && port(596-599, 1400) -> proxy`.
+
 ## Version 0.3.3
 
 The installer updates an existing NSIS installation in place, preserving servers and settings. Both installers include Xray **v26.10.31**, selected automatically on first launch. Each build fetches the latest stable Xray and verifies SHA-256. Installing the bundled core needs no separate download. After a new bundled version has been selected once, subsequent manual selections are preserved.
