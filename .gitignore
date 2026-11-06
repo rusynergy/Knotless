@@ -1,0 +1,10 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+.tools/
+*.log
+*.local
+test-results/
+*.tsbuildinfo
+src-tauri/resources/bundled-xray/

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Knotless",
+  "version": "0.3.3",
+  "identifier": "app.knotless.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Knotless",
+        "width": 1280,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 650,
+        "backgroundColor": "#101310"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; font-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "shortDescription": "Knotless Xray client for Windows",
+    "category": "Utility",
+    "icon": [
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "resources/WINTUN-LICENSE.txt": "resources/WINTUN-LICENSE.txt",
+      "resources/bundled-xray/current/wintun.dll": "resources/wintun.dll",
+      "resources/bundled-xray/current/xray/": "resources/xray/"
+    },
+    "windows": {
+      "allowDowngrades": false,
+      "nsis": {
+        "template": "installer/installer.nsi"
+      }
+    }
+  }
+}
