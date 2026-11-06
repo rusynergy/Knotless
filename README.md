@@ -1,8 +1,16 @@
 # Knotless
 
+**Русский** · [English](README.en.md) · [简体中文](README.zh-CN.md)
+
+Я захотел свой VPN-клиент, потому что не доверял другим, устал ждать новую версию клиента ради обновления Xray-core и очень люблю RoutingA. Так появился Knotless: клиент для Windows с независимым выбором версии ядра и правилами маршрутизации в стиле RoutingA.
+
 Windows-клиент Xray с интерфейсом на React / TypeScript и нативной частью на Tauri 2 / Rust.
 
 [Скачать для Windows x64 или ARM64](https://github.com/rusynergy/Knotless/releases/latest)
+
+![Главный экран Knotless с демонстрационными серверами](docs/images/knotless-main.png)
+
+Главный экран с вымышленными серверами на доменах example.com. Соединение отключено, сетевые тесты не запускались.
 
 ## Текущая версия: 0.3.3
 
