@@ -23,6 +23,12 @@ The screenshot shows fictional servers on example.com domains. The connection is
 - DNS over TCP or DoH: Quad9 (default), Google, Cloudflare, OpenDNS, Yandex, or a custom resolver.
 - Live traffic statistics and graph, connection health checks, optional TUN recovery, tray menu, light and dark themes.
 
+## Version 0.3.8
+
+- The QR button in Add servers opens the camera and fills the import field with a recognized VLESS link. Camera selection, unavailable-device and permission-error states are supported. The camera stops after recognition, closing the scanner, or hiding the window.
+- Every server, including subscription entries, has a Share action showing its QR code and a click-to-copy link. QR generation and decoding run locally.
+- The displayed app version now follows the package version.
+
 ## Version 0.3.7
 
 Knotless requests administrator rights at startup, before opening its window, including after a Windows reboot. TUN no longer needs a separate restart from Settings. Cancelling UAC closes the launcher; an already elevated process does not prompt again.

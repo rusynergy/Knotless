@@ -1,6 +1,6 @@
 [package]
 name = "knotless"
-version = "0.3.7"
+version = "0.3.8"
 description = "Knotless — Windows Xray client"
 edition = "2021"
 
