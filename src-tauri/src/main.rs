@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod windows_process;
+mod update_shutdown;
 mod tun;
 mod dns;
 mod tray;
@@ -229,7 +230,11 @@ async fn https_probe(version: String, mut config: Value, url: String, expected: 
     let result = Probe { ms: start.elapsed().as_millis() as u64, status, url }; drop(managed); Ok(result)
 }
 fn main() {
+    update_shutdown::handle_args();
     if windows_process::handle_helper_args(){return;}
+    // Elevate before creating the GUI, WebView, tray or single-instance mutex.
+    // Installer and console helpers above retain their own privilege handling.
+    if !windows_process::ensure_gui_elevation(){return;}
     #[cfg(windows)] unsafe {
         use windows_sys::Win32::{System::Threading::CreateMutexW, Foundation::{GetLastError, ERROR_ALREADY_EXISTS}};
         let name: Vec<u16> = "Local\\Knotless.Desktop.0.1\0".encode_utf16().collect();
@@ -245,7 +250,7 @@ fn main() {
         let bundled_core=bundled_core::install(&root,&app.path().resource_dir()?)?;
         let subscriptions=subscriptions::load(&root);
         app.manage(AppState { root, bundled_core, runtime:Mutex::new(Runtime::default()), profile:Mutex::new(None),tray_toggle:Mutex::new(None),tray_open:Mutex::new(None),tray_quit:Mutex::new(None),language:Mutex::new("ru".into()),subscriptions:Mutex::new(subscriptions),telemetry:Mutex::new(monitor::Telemetry::default()),auto_reconnect:AtomicBool::new(true),busy:AtomicBool::new(false),closing:AtomicBool::new(false),minimize_to_tray:AtomicBool::new(true),probes:tokio::sync::Semaphore::new(3), installs:tokio::sync::Mutex::new(()) });
-        tray::setup(app)?;monitor::start(app.handle().clone());subscriptions::start_scheduler(app.handle().clone()); Ok(())
+        tray::setup(app)?;update_shutdown::start(app.handle().clone())?;monitor::start(app.handle().clone());subscriptions::start_scheduler(app.handle().clone()); Ok(())
     }).invoke_handler(tauri::generate_handler![list_cores,list_releases,install_core,connect,disconnect,runtime_status,tcp_probe,https_probe,set_connection_profile,set_window_behavior,restart_as_admin,set_language,set_auto_reconnect,monitor::telemetry,subscriptions::get_hwid,subscriptions::list_subscriptions,subscriptions::add_subscription,subscriptions::configure_subscription,subscriptions::refresh_subscription,subscriptions::remove_subscription])
     .on_window_event(|window,event| {
         let state=window.state::<AppState>();

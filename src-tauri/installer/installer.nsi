@@ -706,7 +706,23 @@ Section Install
     !insertmacro NSIS_HOOK_PREINSTALL
   !endif
 
-  !insertmacro CheckIfAppIsRunning "$INSTDIR\${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+  ; Run the NEW helper from a temporary directory, not the locked old binary.
+  ; Elevate only this helper when the existing TUN client needs administrator rights.
+  InitPluginsDir
+  SetOutPath "$PLUGINSDIR"
+  File /oname=knotless-update-helper.exe "${MAINBINARYSRCPATH}"
+  knotless_shutdown_retry:
+  ClearErrors
+  ExecWait '"$PLUGINSDIR\knotless-update-helper.exe" --shutdown-for-update "$INSTDIR\${MAINBINARYNAME}.exe"' $0
+  IfErrors knotless_shutdown_abort
+  ${If} $0 != 0
+    IfSilent knotless_shutdown_abort
+    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "Could not close Knotless (code $0). Allow the administrator prompt, or exit Knotless from its tray menu, then retry." IDRETRY knotless_shutdown_retry
+    knotless_shutdown_abort:
+    SetErrorLevel 1
+    Abort
+  ${EndIf}
+  SetOutPath $INSTDIR
 
   ; Copy main executable
   File "${MAINBINARYSRCPATH}"

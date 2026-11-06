@@ -19,7 +19,7 @@ pub fn add_with_dns(config:&mut Value,dns:&crate::dns::Settings) -> Result<()> {
             // from bypassing the selected DNS policy (including AAAA filtering).
             "dns":["172.31.255.2"],
             "autoSystemRoutingTable":["0.0.0.0/1","128.0.0.0/1","::/1","8000::/1"],
-            "autoOutboundsInterface":"auto", "autoSystemWfpBlockLeak":["dns","misconfigtun"] },
+            "autoOutboundsInterface":"auto", "autoSystemWfpBlockLeak":if dns.leak_protection{vec!["dns","misconfigtun"]}else{vec!["misconfigtun"]} },
         "sniffing":{"enabled":true,"destOverride":["http","tls","quic"],"routeOnly":true}
     }));
     crate::dns::configure(config,dns)?;
@@ -36,6 +36,14 @@ pub fn ensure_driver(resource:&Path,exe:&Path)->Result<()> {
 #[cfg(test)] mod tests {
     use super::*;
     #[test] fn version_gate(){assert!(supported("v26.10.31"));assert!(supported("v26.11.1"));assert!(!supported("v26.9.9"));assert!(!supported("v1.8.24"));}
+    #[test] fn dns_protection_requires_explicit_opt_out(){
+        let legacy:crate::dns::Settings=serde_json::from_value(json!({"transport":"tcp","address":"9.9.9.9","dohUrl":"https://dns.quad9.net/dns-query"})).unwrap();assert!(legacy.leak_protection);
+        let mut protected=json!({"inbounds":[],"outbounds":[],"routing":{"rules":[]}});add_with_dns(&mut protected,&legacy).unwrap();
+        assert_eq!(protected["inbounds"][0]["settings"]["autoSystemWfpBlockLeak"],json!(["dns","misconfigtun"]));
+        let mut compatible=json!({"inbounds":[],"outbounds":[],"routing":{"rules":[]}});add_with_dns(&mut compatible,&crate::dns::Settings{leak_protection:false,..legacy}).unwrap();
+        assert_eq!(compatible["inbounds"][0]["settings"]["autoSystemWfpBlockLeak"],json!(["misconfigtun"]));
+        compatible["inbounds"][0]["settings"]["autoSystemWfpBlockLeak"]=json!(["dns","misconfigtun"]);assert_eq!(protected,compatible,"DNS forwarding, routes and outbound policy must remain unchanged");
+    }
     #[test] fn covers_both_ip_families_and_preserves_user_rules(){
         let rule=json!({"type":"field","ip":["geoip:private"],"outboundTag":"direct"});
         let mut c=json!({"inbounds":[],"outbounds":[],"routing":{"rules":[rule.clone()]}}); add_inbound(&mut c).unwrap();

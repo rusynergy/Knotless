@@ -2,6 +2,10 @@ use crate::*;
 use tauri::{menu::{Menu,MenuItem,PredefinedMenuItem},tray::{MouseButton,MouseButtonState,TrayIconBuilder,TrayIconEvent}};
 
 pub fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.unminimize();let _=w.show();let _=w.set_focus();}}
+pub fn quit(app:&tauri::AppHandle){
+    if app.state::<AppState>().closing.swap(true,Ordering::SeqCst){return;}
+    let app=app.clone();tauri::async_runtime::spawn_blocking(move||{let _=stop_connection(&app);app.exit(0);});
+}
 pub fn refresh(app:&tauri::AppHandle){
     let state=app.state::<AppState>();
     let language=state.language.lock().map(|l|l.clone()).unwrap_or_default();
@@ -35,7 +39,7 @@ pub fn setup(app:&tauri::App)->std::result::Result<(),Box<dyn std::error::Error>
                 if !running&&profile.is_none(){show(&app);return;}
                 if let Err(e)=run_connection(app.clone(),profile).await{let _=app.emit("knotless-error",e);show(&app);}
             });},
-            "quit"=>{let app=app.clone();app.state::<AppState>().closing.store(true,Ordering::SeqCst);tauri::async_runtime::spawn_blocking(move||{let _=stop_connection(&app);app.exit(0);});},_=>{}
+            "quit"=>self::quit(app),_=>{}
         }).build(app)?;
     let app=app.handle().clone();
     // Native monitoring continues while the webview is hidden or throttled.

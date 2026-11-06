@@ -23,6 +23,18 @@ The screenshot shows fictional servers on example.com domains. The connection is
 - DNS over TCP or DoH: Quad9 (default), Google, Cloudflare, OpenDNS, Yandex, or a custom resolver.
 - Live traffic statistics and graph, connection health checks, optional TUN recovery, tray menu, light and dark themes.
 
+## Version 0.3.7
+
+Knotless requests administrator rights at startup, before opening its window, including after a Windows reboot. TUN no longer needs a separate restart from Settings. Cancelling UAC closes the launcher; an already elevated process does not prompt again.
+
+## Version 0.3.6
+
+DNS settings include “Block DNS outside TUN (WFP)” for compatibility testing. Protection stays enabled by default, including for existing profiles. Disabling it requires saving and reconnecting. DNS inside TUN still uses the selected server, but Windows and other applications may send queries outside the VPN. This is a diagnostic option, not a confirmed fix for ARM64 DNS failures.
+
+## Version 0.3.5
+
+The installer uses a separate shutdown helper. If Knotless is running as administrator for TUN, only the helper requests UAC elevation; installation remains in the original user's profile. New clients receive a graceful exit request. For versions up to 0.3.4, the helper waits for console Xray to shut down and clean up TUN before stopping the exact client instance being updated. If shutdown fails or UAC is cancelled, application files are not replaced.
+
 ## Version 0.3.4
 
 Port lists now accept spaces after commas and around range separators. Domain lists compile into separate Xray matchers. Combine different condition types with `&&`, for example: `network(udp) && port(596-599, 1400) -> proxy`.
@@ -36,7 +48,7 @@ The installer updates an existing NSIS installation in place, preserving servers
 1. Install the version for your Windows architecture. To update, exit Knotless from its tray menu first.
 2. Add your VLESS link or HTTPS subscription, then select a server.
 3. Run the server check: TCP tests port connectivity; HTTPS sends a request through the server.
-4. Choose local proxy mode or TUN in Settings. TUN requires administrator privileges; Settings includes a restart button.
+4. Choose local proxy mode or TUN in Settings. Knotless requests administrator privileges at startup, so TUN needs no separate restart.
 5. Connect. In local proxy mode, configure the proxy in your browser or other application.
 
 TUN respects routing rules. Use `default: proxy` for internet traffic through the server; `direct` bypasses the proxy and `block` blocks matching traffic. Rules and DNS changes apply on the next connection.

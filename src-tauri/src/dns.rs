@@ -1,8 +1,9 @@
 use crate::*;
 #[derive(Clone,Serialize,Deserialize,Debug)]
 #[serde(rename_all="camelCase")]
-pub struct Settings {pub transport:String,pub address:String,pub doh_url:String,#[serde(default)]pub ipv6:bool}
-impl Default for Settings {fn default()->Self{Self{transport:"tcp".into(),address:"9.9.9.9".into(),doh_url:"https://dns.quad9.net/dns-query".into(),ipv6:false}}}
+pub struct Settings {pub transport:String,pub address:String,pub doh_url:String,#[serde(default)]pub ipv6:bool,#[serde(default="protection_default")]pub leak_protection:bool}
+fn protection_default()->bool{true}
+impl Default for Settings {fn default()->Self{Self{transport:"tcp".into(),address:"9.9.9.9".into(),doh_url:"https://dns.quad9.net/dns-query".into(),ipv6:false,leak_protection:true}}}
 impl Settings {
     pub fn validate(&self)->Result<()>{
         if !["tcp","doh"].contains(&self.transport.as_str()){return Err("DNS_INVALID".into());}
@@ -57,7 +58,7 @@ pub fn pin_endpoint(config:&mut Value)->Result<()>{
    let mut failures=vec![];
    for (name,address,url) in [("Quad9","9.9.9.9","https://dns.quad9.net/dns-query"),("Google","8.8.8.8","https://dns.google/dns-query"),("Cloudflare","1.1.1.1","https://1.1.1.1/dns-query"),("OpenDNS","208.67.222.222","https://doh.opendns.com/dns-query"),("Yandex","77.88.8.8","https://common.dot.dns.yandex.net/dns-query")]{
     for transport in ["tcp","doh"]{
-     let settings=Settings{transport:transport.into(),address:address.into(),doh_url:url.into(),ipv6:false};
+     let settings=Settings{transport:transport.into(),address:address.into(),doh_url:url.into(),ipv6:false,..Default::default()};
      let tcp=TcpListener::bind("127.0.0.1:0").unwrap();let socks_port=tcp.local_addr().unwrap().port();
      let udp=std::net::UdpSocket::bind("127.0.0.1:0").unwrap();let dns_port=udp.local_addr().unwrap().port();
      let mut config=prepare_config(json!({"routing":{"rules":[]},"outbounds":[{"tag":"proxy","protocol":"vless","settings":{"vnext":[{"address":"127.0.0.1","port":port,"users":[{"id":id,"encryption":"none"}]}]}}]}),socks_port,None).unwrap();
