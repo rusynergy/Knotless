@@ -144,6 +144,9 @@ fn wait_tun_ready(child:&mut ManagedChild)->Result<()> {
 }
 struct BusyGuard<'a>(&'a AtomicBool);
 impl Drop for BusyGuard<'_> {fn drop(&mut self){self.0.store(false,Ordering::SeqCst);}}
+fn check_fragment_core(version:&str,config:&Value)->Result<()> {
+    if !tun::supported(version) && config["outbounds"].as_array().is_some_and(|outs|outs.iter().any(|o|!o["streamSettings"]["finalmask"].is_null())) {return Err("FRAGMENT_CORE".into());} Ok(())
+}
 fn connect_profile(profile:ConnectionProfile,app:&tauri::AppHandle)->Result<()> {
         let active_profile=profile.clone();
         let ConnectionProfile{version,config,mode,name,dns}=profile;
@@ -155,6 +158,7 @@ fn connect_profile(profile:ConnectionProfile,app:&tauri::AppHandle)->Result<()> 
             if !tun::supported(&version) {return Err(format!("Для TUN нужно Xray {} или новее. Выберите новое ядро.",tun::MIN_VERSION));}
             if !windows_process::is_elevated(){return Err("Для TUN запустите Knotless от имени администратора — кнопка в настройках подключения.".into());}
         }
+        check_fragment_core(&version,&config)?;
         let exe = core_path(&state.root, &version)?;
         let socks = TcpListener::bind("127.0.0.1:10808").map_err(|_| "Порт 10808 занят другим приложением.")?;
         let http = TcpListener::bind("127.0.0.1:10809").map_err(|_| "Порт 10809 занят другим приложением.")?;
@@ -210,6 +214,7 @@ fn runtime_status(state: State<AppState>) -> Result<Status> {
 async fn tcp_probe(host:String,port:u16)->Result<f64>{tcp_probe::probe(host,port).await}
 #[tauri::command]
 async fn https_probe(version: String, mut config: Value, url: String, expected: u16, app: tauri::AppHandle) -> Result<Probe> {
+    check_fragment_core(&version,&config)?;
     let parsed = reqwest::Url::parse(&url).map_err(err)?;
     if parsed.scheme() != "https" || !parsed.username().is_empty() || parsed.password().is_some() || !(200..300).contains(&expected) { return Err("Для проверки нужен HTTPS URL и статус 200–299.".into()); }
     let state = app.state::<AppState>(); let _permit = state.probes.acquire().await.map_err(err)?;

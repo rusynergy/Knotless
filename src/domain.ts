@@ -1,3 +1,4 @@
+import { fragmentMask, type FragmentSettings } from './fragment-config';
 export type Outbound = Record<string, unknown>;
 export type Server = { id: string; name: string; host: string; port: number; protocol: string; transport: string; security: string; outbound: Outbound; subscriptionId?: string };
 export type Rule = { type: 'field'; outboundTag: string; domain?: string[]; ip?: string[]; port?: string; network?: string };
@@ -97,10 +98,11 @@ export function compileRouting(source: string): { defaultTag: string; rules: Rul
   });
   return { defaultTag, rules };
 }
-export function buildConfig(server: Server, source: string, probe = false): Record<string, unknown> {
+export function buildConfig(server: Server, source: string, probe = false, fragment?: FragmentSettings): Record<string, unknown> {
   const route = probe ? { defaultTag: 'proxy', rules: [] } : compileRouting(source);
-  const outbounds = [server.outbound, { tag: 'direct', protocol: 'freedom' }, { tag: 'block', protocol: 'blackhole' }];
+  const proxy = fragment?.enabled ? { ...server.outbound, streamSettings: { ...(server.outbound.streamSettings as object), finalmask: fragmentMask(fragment) } } : server.outbound;
+  const outbounds = [proxy, { tag: 'direct', protocol: 'freedom' }, { tag: 'block', protocol: 'blackhole' }];
   outbounds.sort((a, b) => Number(b.tag === route.defaultTag) - Number(a.tag === route.defaultTag));
-  return { log: { loglevel: 'warning' }, inbounds: [], outbounds: probe ? [server.outbound] : outbounds,
+  return { log: { loglevel: 'warning' }, inbounds: [], outbounds: probe ? [proxy] : outbounds,
     routing: { domainStrategy: 'AsIs', rules: route.rules } };
 }

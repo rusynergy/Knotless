@@ -1726,7 +1726,7 @@ dependencies = [
 
 [[package]]
 name = "knotless"
-version = "0.3.8"
+version = "0.3.9"
 dependencies = [
  "base64 0.22.1",
  "reqwest 0.12.28",

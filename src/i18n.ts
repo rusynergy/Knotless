@@ -1,6 +1,15 @@
 export type Language = 'ru' | 'en' | 'zh';
 export const languages: Language[] = ['ru', 'en', 'zh'];
 const messages = {
+  fragmentTitle:['Фрагментация TCP','TCP fragmentation','TCP 分片'],
+  fragmentEnable:['Включить фрагментацию','Enable fragmentation','启用分片'],
+  fragmentHint:['Для TCP-соединения с VPN-сервером. Применяется при следующем подключении и HTTPS-проверке. Требуется Xray v26.10.31 или новее.','Applies to the TCP connection to the VPN server on the next connection or HTTPS test. Requires Xray v26.10.31 or newer.','用于连接 VPN 服务器的 TCP 连接，下次连接或 HTTPS 测试时生效。需要 Xray v26.10.31 或更高版本。'],
+  fragPackets:['Что фрагментировать','Fragment target','分片目标'],
+  fragFirst:['Первые три записи TCP','First three TCP writes','前三次 TCP 写入'],
+  fragLength:['Размер фрагмента, байт (1–16384)','Fragment size, bytes (1–16384)','分片大小，字节（1–16384）'],
+  fragDelay:['Задержка, мс (0–1000)','Delay, ms (0–1000)','延迟，毫秒（0–1000）'],
+  fragInvalid:['Введите целое число или диапазон, например 100-200.','Enter a whole number or range, for example 100-200.','请输入整数或范围，例如 100-200。'],
+  FRAGMENT_CORE:['Для фрагментации выберите Xray v26.10.31 или новее.','Select Xray v26.10.31 or newer for fragmentation.','分片需要 Xray v26.10.31 或更高版本。'],
   dnsLeakProtection:['Блокировать DNS вне TUN (WFP)','Block DNS outside TUN (WFP)','阻止 TUN 外的 DNS（WFP）'],
   dnsLeakProtectionHint:['Включено по умолчанию. При сбое DNS можно временно отключить для проверки совместимости, сохранить и переподключиться. Выбранный DNS по-прежнему используется через Xray.','Enabled by default. For DNS failures, temporarily disable it to test compatibility, save and reconnect. Xray still uses the selected DNS provider.','默认开启。DNS 故障时可暂时关闭以测试兼容性，然后保存并重新连接。Xray 仍使用所选 DNS 提供商。'],
   dnsLeakProtectionOff:['Защита DNS отключена: Windows и другие программы могут отправлять DNS-запросы вне VPN. После диагностики включите её обратно.','DNS protection is off: Windows and other applications may send DNS queries outside the VPN. Re-enable it after diagnosis.','DNS 保护已关闭：Windows 和其他程序可能在 VPN 之外发送 DNS 查询。诊断结束后请重新开启。'],
