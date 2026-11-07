@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knotless — Windows VPN 客户端</title><meta name="description" content="自由选择 Xray-core 版本，为连接设置路由规则。Knotless 支持 VLESS、全设备 TUN 和本地代理模式。">
+<link rel="icon" href="./images/knotless.svg"><link rel="stylesheet" href="./site.css">
+</head>
+<body><header><a class="brand" href="./zh-CN.html"><img alt="" width="36" height="36" src="./images/knotless.svg">Knotless</a>
+<nav><a href="#guide">使用文档</a><a href="https://github.com/rusynergy/Knotless">GitHub ↗</a></nav>
+<div class="languages"><a lang="ru" hreflang="ru" href="./index.html">Русский</a><a lang="en" hreflang="en" href="./en.html">English</a><a lang="zh-CN" hreflang="zh-CN" aria-current="page" href="./zh-CN.html">简体中文</a></div></header>
+<main><section class="hero"><div><p class="platform">Windows · Xray-core</p><h1>Knotless</h1><h2>Windows VPN 客户端</h2><p class="intro">自由选择 Xray-core 版本，为连接设置路由规则。Knotless 支持 VLESS、全设备 TUN 和本地代理模式。</p>
+<div class="actions"><a href="https://github.com/rusynergy/Knotless/releases/download/v0.3.9/Knotless_0.3.9_x64-setup.exe">下载 x64 ↓</a><a href="https://github.com/rusynergy/Knotless/releases/download/v0.3.9/Knotless_0.3.9_arm64-setup.exe">下载 ARM64 ↓</a></div>
+<p class="release">v0.3.9 <a href="https://github.com/rusynergy/Knotless/releases/latest">所有版本 ↗</a></p></div>
+<figure><a href="./images/knotless-main.png"><img src="./images/knotless-main.png" alt="Knotless 主界面及演示服务器"></a><figcaption>Knotless 主界面及演示服务器</figcaption></figure></section>
+<section id="guide" class="guide"><div><p class="label">使用文档</p><h2>快速入门</h2><nav class="contents"><a href="#install">安装 Knotless</a><a href="#server">添加服务器</a><a href="#connect">连接与检测</a><a href="#routing">路由规则</a><a href="#settings">连接设置</a></nav></div>
+<div class="chapters"><article id="install"><h3>安装 Knotless</h3><p>下载适合 Windows 系统架构的安装程序并运行。安装后打开 Knotless，确认管理员权限请求。安装包已内置 Xray。</p></article>
+<article id="server"><h3>添加服务器</h3><p>在「服务器」页面点击「添加服务器」，粘贴 vless:// 链接，或使用摄像头扫描二维码。使用订阅时，选择「添加订阅」并粘贴 HTTPS 订阅地址。</p></article>
+<article id="connect"><h3>连接与检测</h3><p>选择服务器并点击「连接」。首次启动默认选择 TUN 模式。闪电按钮会测试 TCP 端口，并通过服务器发送 HTTPS 请求。HTTPS 检测成功表示收到预期的响应。</p></article>
+<article id="routing"><h3>路由规则</h3><p>在「路由」页面设置默认行为与例外规则。以下示例让流量通过代理，访问私有 IP 地址时则直连。保存规则后重新连接即可生效。</p><pre><code>default: proxy
+ip(geoip:private) -> direct</code></pre></article>
+<article id="settings"><h3>连接设置</h3><p>使用本地代理模式时，在浏览器中设置 SOCKS5 代理 127.0.0.1:10808 或 HTTP 代理 127.0.0.1:10809。使用 TUN 时，可在设置中选择 DNS 服务商和 TCP 或 DoH。在「内核」页面可以安装并选择下次连接使用的 Xray 版本。</p></article>
+<article id="updates"><h3>更新与支持</h3><p>在 GitHub Releases 中可下载各版本安装包、查看校验和及更新说明。</p><p><a href="https://github.com/rusynergy/Knotless/releases">所有版本 ↗</a> · <a href="https://github.com/rusynergy/Knotless/issues">报告问题 ↗</a></p></article></div></section></main><footer>Knotless <a href="https://github.com/rusynergy/Knotless">rusynergy / Knotless ↗</a></footer></body></html>

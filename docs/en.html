@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knotless — VPN client for Windows</title><meta name="description" content="Choose your Xray-core version and write rules for each connection. Knotless supports VLESS, device-wide TUN and local proxy mode.">
+<link rel="icon" href="./images/knotless.svg"><link rel="stylesheet" href="./site.css">
+</head>
+<body><header><a class="brand" href="./en.html"><img alt="" width="36" height="36" src="./images/knotless.svg">Knotless</a>
+<nav><a href="#guide">Documentation</a><a href="https://github.com/rusynergy/Knotless">GitHub ↗</a></nav>
+<div class="languages"><a lang="ru" hreflang="ru" href="./index.html">Русский</a><a lang="en" hreflang="en" aria-current="page" href="./en.html">English</a><a lang="zh-CN" hreflang="zh-CN" href="./zh-CN.html">简体中文</a></div></header>
+<main><section class="hero"><div><p class="platform">Windows · Xray-core</p><h1>Knotless</h1><h2>VPN client for Windows</h2><p class="intro">Choose your Xray-core version and write rules for each connection. Knotless supports VLESS, device-wide TUN and local proxy mode.</p>
+<div class="actions"><a href="https://github.com/rusynergy/Knotless/releases/download/v0.3.9/Knotless_0.3.9_x64-setup.exe">Download x64 ↓</a><a href="https://github.com/rusynergy/Knotless/releases/download/v0.3.9/Knotless_0.3.9_arm64-setup.exe">Download ARM64 ↓</a></div>
+<p class="release">v0.3.9 <a href="https://github.com/rusynergy/Knotless/releases/latest">All releases ↗</a></p></div>
+<figure><a href="./images/knotless-main.png"><img src="./images/knotless-main.png" alt="Knotless main screen with demo servers"></a><figcaption>Knotless main screen with demo servers</figcaption></figure></section>
+<section id="guide" class="guide"><div><p class="label">Documentation</p><h2>Getting started</h2><nav class="contents"><a href="#install">Install Knotless</a><a href="#server">Add a server</a><a href="#connect">Connect and test</a><a href="#routing">Routing</a><a href="#settings">Connection settings</a></nav></div>
+<div class="chapters"><article id="install"><h3>Install Knotless</h3><p>Download the installer for your Windows architecture and run it. Open Knotless and approve the administrator prompt. The installer includes Xray.</p></article>
+<article id="server"><h3>Add a server</h3><p>On the Servers page, choose Add server. Paste a vless:// link or scan a QR code with your camera. For a subscription, choose Add subscription and paste its HTTPS URL.</p></article>
+<article id="connect"><h3>Connect and test</h3><p>Select a server and click Connect. TUN is selected on first launch. The lightning button tests the TCP port and sends an HTTPS request through the server. A successful HTTPS test confirms the expected response.</p></article>
+<article id="routing"><h3>Routing</h3><p>Open Routing to set the default action and exceptions. This example sends traffic through the proxy and connects directly to private IP addresses. Save and reconnect to apply the rules.</p><pre><code>default: proxy
+ip(geoip:private) -> direct</code></pre></article>
+<article id="settings"><h3>Connection settings</h3><p>In local proxy mode, configure your browser to use SOCKS5 at 127.0.0.1:10808 or HTTP at 127.0.0.1:10809. In TUN mode, Settings lets you choose a DNS provider and TCP or DoH. On the Core page, install and select another Xray version for the next connection.</p></article>
+<article id="updates"><h3>Updates and support</h3><p>GitHub Releases contains installers, checksums and changes for each release.</p><p><a href="https://github.com/rusynergy/Knotless/releases">All releases ↗</a> · <a href="https://github.com/rusynergy/Knotless/issues">Report an issue ↗</a></p></article></div></section></main><footer>Knotless <a href="https://github.com/rusynergy/Knotless">rusynergy / Knotless ↗</a></footer></body></html>

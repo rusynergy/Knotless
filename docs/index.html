@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knotless — VPN-клиент для Windows</title><meta name="description" content="Выбирайте версию Xray-core и задавайте правила для каждого соединения. Knotless поддерживает VLESS, режим TUN и локальный прокси.">
+<link rel="icon" href="./images/knotless.svg"><link rel="stylesheet" href="./site.css">
+</head>
+<body><header><a class="brand" href="./index.html"><img alt="" width="36" height="36" src="./images/knotless.svg">Knotless</a>
+<nav><a href="#guide">Документация</a><a href="https://github.com/rusynergy/Knotless">GitHub ↗</a></nav>
+<div class="languages"><a lang="ru" hreflang="ru" aria-current="page" href="./index.html">Русский</a><a lang="en" hreflang="en" href="./en.html">English</a><a lang="zh-CN" hreflang="zh-CN" href="./zh-CN.html">简体中文</a></div></header>
+<main><section class="hero"><div><p class="platform">Windows · Xray-core</p><h1>Knotless</h1><h2>VPN-клиент для Windows</h2><p class="intro">Выбирайте версию Xray-core и задавайте правила для каждого соединения. Knotless поддерживает VLESS, режим TUN и локальный прокси.</p>
+<div class="actions"><a href="https://github.com/rusynergy/Knotless/releases/download/v0.3.9/Knotless_0.3.9_x64-setup.exe">Скачать x64 ↓</a><a href="https://github.com/rusynergy/Knotless/releases/download/v0.3.9/Knotless_0.3.9_arm64-setup.exe">Скачать ARM64 ↓</a></div>
+<p class="release">v0.3.9 <a href="https://github.com/rusynergy/Knotless/releases/latest">Все релизы ↗</a></p></div>
+<figure><a href="./images/knotless-main.png"><img src="./images/knotless-main.png" alt="Главный экран Knotless с тестовыми серверами"></a><figcaption>Главный экран Knotless с тестовыми серверами</figcaption></figure></section>
+<section id="guide" class="guide"><div><p class="label">Документация</p><h2>Начало работы</h2><nav class="contents"><a href="#install">Установка</a><a href="#server">Добавление сервера</a><a href="#connect">Подключение и проверка</a><a href="#routing">Маршрутизация</a><a href="#settings">Настройки соединения</a></nav></div>
+<div class="chapters"><article id="install"><h3>Установка</h3><p>Скачайте установщик для своей архитектуры Windows и запустите его. После установки откройте Knotless и подтвердите запрос прав администратора. Ядро Xray уже включено.</p></article>
+<article id="server"><h3>Добавление сервера</h3><p>На странице «Серверы» нажмите «Добавить сервер». Вставьте ссылку vless:// или отсканируйте QR-код камерой. Для подписки выберите «Добавить подписку» и вставьте её HTTPS-адрес.</p></article>
+<article id="connect"><h3>Подключение и проверка</h3><p>Выберите сервер и нажмите «Подключиться». При первом запуске выбран TUN. Кнопка с молнией проверяет доступность TCP-порта и выполняет HTTPS-запрос через сервер. Успешный HTTPS-тест подтверждает, что запрос получил ожидаемый ответ.</p></article>
+<article id="routing"><h3>Маршрутизация</h3><p>На странице «Маршрутизация» укажите действие по умолчанию и исключения. Этот пример отправляет трафик через прокси, а для частных IP использует прямое подключение. Сохраните правила и переподключитесь.</p><pre><code>default: proxy
+ip(geoip:private) -> direct</code></pre></article>
+<article id="settings"><h3>Настройки соединения</h3><p>В локальном режиме укажите в браузере SOCKS5 127.0.0.1:10808 или HTTP 127.0.0.1:10809. Для TUN в настройках можно выбрать DNS-провайдера и транспорт TCP или DoH. На странице «Ядро» можно установить и выбрать другую версию Xray для следующего подключения.</p></article>
+<article id="updates"><h3>Обновления и помощь</h3><p>Новые установщики, контрольные суммы и список изменений доступны в релизах GitHub.</p><p><a href="https://github.com/rusynergy/Knotless/releases">Все релизы ↗</a> · <a href="https://github.com/rusynergy/Knotless/issues">Сообщить о проблеме ↗</a></p></article></div></section></main><footer>Knotless <a href="https://github.com/rusynergy/Knotless">rusynergy / Knotless ↗</a></footer></body></html>
