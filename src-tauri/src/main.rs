@@ -1,11 +1,17 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-mod windows_process;
+#[cfg(windows)] mod windows_process;
+#[cfg(target_os="macos")] #[path="mac_process.rs"] mod windows_process;
+#[cfg(windows)]
 mod update_shutdown;
 mod tun;
 mod dns;
 mod tray;
 mod monitor;
-mod tcp_probe;
+#[cfg(windows)] mod tcp_probe;
+#[cfg(target_os="macos")] #[path="mac_probe.rs"] mod tcp_probe;
+#[cfg(windows)] const CORE_EXE:&str="xray.exe";
+#[cfg(target_os="macos")] const CORE_EXE:&str="xray";
+#[cfg(target_os="macos")] const XRAY_ARCHIVE:&str=if cfg!(target_arch="aarch64"){"Xray-macos-arm64-v8a.zip"}else{"Xray-macos-64.zip"};
 mod bundled_core;
 mod subscriptions;
 use serde::{Deserialize, Serialize};
@@ -19,8 +25,8 @@ fn err(e: impl std::fmt::Display) -> String { e.to_string() }
 const MAX_ARCHIVE: usize = 120 * 1024 * 1024;
 #[cfg(target_arch="aarch64")] const CORE_DIRECTORY:&str="cores-arm64";
 #[cfg(not(target_arch="aarch64"))] const CORE_DIRECTORY:&str="cores";
-#[cfg(target_arch="aarch64")] const XRAY_ARCHIVE:&str="Xray-windows-arm64-v8a.zip";
-#[cfg(not(target_arch="aarch64"))] const XRAY_ARCHIVE:&str="Xray-windows-64.zip";
+#[cfg(target_arch="aarch64")] #[cfg(windows)] const XRAY_ARCHIVE:&str="Xray-windows-arm64-v8a.zip";
+#[cfg(not(target_arch="aarch64"))] #[cfg(windows)] const XRAY_ARCHIVE:&str="Xray-windows-64.zip";
 
 struct ManagedChild { child: windows_process::Process, config_path: PathBuf, log_path: PathBuf, #[cfg(windows)] job: isize }
 impl Drop for ManagedChild {
@@ -40,14 +46,14 @@ struct AppState { root: PathBuf, bundled_core:Option<String>, runtime: Mutex<Run
 fn valid_version(version: &str) -> Result<()> {
     if version.len() > 40 || !version.starts_with('v') || !version[1..].chars().all(|c| c.is_ascii_digit() || c == '.') || version[1..].split('.').any(|s| s.is_empty()) { return Err("Некорректная версия ядра.".into()); } Ok(())
 }
-fn core_path(root: &Path, version: &str) -> Result<PathBuf> { valid_version(version)?; let p = root.join(CORE_DIRECTORY).join(version).join("xray.exe"); if !p.is_file() { return Err("Выбранное ядро не установлено.".into()); } Ok(p) }
+fn core_path(root: &Path, version: &str) -> Result<PathBuf> { valid_version(version)?; let p = root.join(CORE_DIRECTORY).join(version).join(CORE_EXE); if !p.is_file() { return Err("Выбранное ядро не установлено.".into()); } Ok(p) }
 fn client() -> Result<reqwest::Client> { reqwest::Client::builder().no_proxy().user_agent("Knotless/0.1").timeout(Duration::from_secs(120)).build().map_err(err) }
 #[tauri::command]
 fn list_cores(state: State<AppState>) -> Result<Vec<Core>> {
     let mut result = vec![];
     for entry in fs::read_dir(state.root.join(CORE_DIRECTORY)).map_err(err)? {
         let e = entry.map_err(err)?; let name = e.file_name().to_string_lossy().to_string();
-        if valid_version(&name).is_ok() && e.path().join("xray.exe").is_file() { result.push(Core { bundled:state.bundled_core.as_deref()==Some(name.as_str()), version: name, path: e.path().to_string_lossy().to_string() }); }
+        if valid_version(&name).is_ok() && e.path().join(CORE_EXE).is_file() { result.push(Core { bundled:state.bundled_core.as_deref()==Some(name.as_str()), version: name, path: e.path().to_string_lossy().to_string() }); }
     }
     result.sort_by(|a,b| b.version.cmp(&a.version)); Ok(result)
 }
@@ -69,7 +75,7 @@ async fn install_core(version: String, state: State<'_, AppState>) -> Result<()>
 async fn install_package(version: &str, root: &Path) -> Result<()> {
     valid_version(version)?;
     let target = root.join(CORE_DIRECTORY).join(version);
-    if target.join("xray.exe").exists() { return Ok(()); }
+    if target.join(CORE_EXE).exists() { return Ok(()); }
     let http = client()?; let base = format!("https://github.com/XTLS/Xray-core/releases/download/{version}/{XRAY_ARCHIVE}");
     let bytes = download(&http, &base, MAX_ARCHIVE).await?;
     let checksum = String::from_utf8(download(&http, &format!("{base}.dgst"), 16384).await?).map_err(err)?;
@@ -78,12 +84,13 @@ async fn install_package(version: &str, root: &Path) -> Result<()> {
     let staging = root.join(CORE_DIRECTORY).join(format!(".download-{}", uuid::Uuid::new_v4())); fs::create_dir_all(&staging).map_err(err)?;
     let result = (|| -> Result<()> {
         let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).map_err(err)?;
-        for name in ["xray.exe", "geoip.dat", "geosite.dat", "LICENSE"] {
+        for name in [CORE_EXE, "geoip.dat", "geosite.dat", "LICENSE"] {
             match archive.by_name(name) {
                 Ok(file) => { if file.size() > MAX_ARCHIVE as u64 { return Err("Слишком большой файл в архиве.".into()); } let mut data = Vec::new(); file.take(MAX_ARCHIVE as u64 + 1).read_to_end(&mut data).map_err(err)?; if data.len() > MAX_ARCHIVE { return Err("Размер файла превышен.".into()); } fs::write(staging.join(name), data).map_err(err)?; },
-                Err(_) if name == "xray.exe" => return Err("В архиве нет xray.exe.".into()), Err(_) => {},
+                Err(_) if name == CORE_EXE => return Err("В архиве нет xray.exe.".into()), Err(_) => {},
             }
         }
+        #[cfg(target_os="macos")] {use std::os::unix::fs::PermissionsExt; fs::set_permissions(staging.join(CORE_EXE),fs::Permissions::from_mode(0o755)).map_err(err)?;}
         fs::rename(&staging, &target).map_err(err)?; Ok(())
     })();
     if staging.exists() { let _ = fs::remove_dir_all(&staging); } result
@@ -128,7 +135,7 @@ fn preflight(exe: &Path, config: &Value, root: &Path) -> Result<()> {
     }; let _ = fs::remove_file(path); result
 }
 fn wait_ready(child: &mut ManagedChild, port: u16) -> Result<()> {
-    let start = Instant::now(); while start.elapsed() < Duration::from_secs(25) {
+    let start = Instant::now(); while start.elapsed() < Duration::from_secs(if cfg!(target_os="macos"){90}else{25}) {
         if child.child.try_wait().map_err(err)?.is_some() { return Err("Xray завершился при запуске. Проверьте совместимость ядра и конфигурации.".into()); }
         if std::net::TcpStream::connect_timeout(&format!("127.0.0.1:{port}").parse().unwrap(), Duration::from_millis(100)).is_ok() { std::thread::sleep(Duration::from_millis(100)); if child.child.try_wait().map_err(err)?.is_none() { return Ok(()); } }
         std::thread::sleep(Duration::from_millis(50));
@@ -138,7 +145,8 @@ fn wait_tun_ready(child:&mut ManagedChild)->Result<()> {
     let start=Instant::now();
     while start.elapsed()<Duration::from_secs(30){
         if child.child.try_wait().map_err(err)?.is_some(){return Err("Xray не смог включить TUN. Проверьте права администратора, ядро и Wintun.".into());}
-        if fs::read_to_string(&child.log_path).unwrap_or_default().contains("Knotless up"){return Ok(());}
+        #[cfg(target_os="macos")] if windows_process::dns_ready(){return Ok(());}
+        #[cfg(windows)] if fs::read_to_string(&child.log_path).unwrap_or_default().contains("Knotless up"){return Ok(());}
         std::thread::sleep(Duration::from_millis(100));
     }Err("Тайм-аут подготовки TUN-интерфейса. Подключение отменено.".into())
 }
@@ -156,14 +164,14 @@ fn connect_profile(profile:ConnectionProfile,app:&tauri::AppHandle)->Result<()> 
         if mode!="proxy"&&mode!="tun" {return Err("Неизвестный режим подключения.".into());}
         if mode=="tun" {
             if !tun::supported(&version) {return Err(format!("Для TUN нужно Xray {} или новее. Выберите новое ядро.",tun::MIN_VERSION));}
-            if !windows_process::is_elevated(){return Err("Для TUN запустите Knotless от имени администратора — кнопка в настройках подключения.".into());}
+            #[cfg(windows)] if !windows_process::is_elevated(){return Err("Для TUN запустите Knotless от имени администратора — кнопка в настройках подключения.".into());}
         }
         check_fragment_core(&version,&config)?;
         let exe = core_path(&state.root, &version)?;
         let socks = TcpListener::bind("127.0.0.1:10808").map_err(|_| "Порт 10808 занят другим приложением.")?;
         let http = TcpListener::bind("127.0.0.1:10809").map_err(|_| "Порт 10809 занят другим приложением.")?;
         let mut config = prepare_config(config, 10808, Some(10809))?;
-        if mode=="tun" { tun::ensure_driver(&app.path().resource_dir().map_err(err)?,&exe)?; dns::pin_endpoint(&mut config)?; tun::add_with_dns(&mut config,&dns)?; }
+        if mode=="tun" { #[cfg(windows)] tun::ensure_driver(&app.path().resource_dir().map_err(err)?,&exe)?; dns::pin_endpoint(&mut config)?; tun::add_with_dns(&mut config,&dns)?; }
         let metrics_socket=TcpListener::bind("127.0.0.1:0").map_err(err)?;let metrics_port=metrics_socket.local_addr().map_err(err)?.port();
         let health_socket=TcpListener::bind("127.0.0.1:0").map_err(err)?;let health_port=health_socket.local_addr().map_err(err)?.port();
         monitor::configure(&mut config,metrics_port,health_port)?;
@@ -235,11 +243,11 @@ async fn https_probe(version: String, mut config: Value, url: String, expected: 
     let result = Probe { ms: start.elapsed().as_millis() as u64, status, url }; drop(managed); Ok(result)
 }
 fn main() {
-    update_shutdown::handle_args();
-    if windows_process::handle_helper_args(){return;}
+    #[cfg(windows)] update_shutdown::handle_args();
+    #[cfg(windows)] if windows_process::handle_helper_args(){return;}
     // Elevate before creating the GUI, WebView, tray or single-instance mutex.
     // Installer and console helpers above retain their own privilege handling.
-    if !windows_process::ensure_gui_elevation(){return;}
+    #[cfg(windows)] if !windows_process::ensure_gui_elevation(){return;}
     #[cfg(windows)] unsafe {
         use windows_sys::Win32::{System::Threading::CreateMutexW, Foundation::{GetLastError, ERROR_ALREADY_EXISTS}};
         let name: Vec<u16> = "Local\\Knotless.Desktop.0.1\0".encode_utf16().collect();
@@ -250,12 +258,22 @@ fn main() {
     tauri::Builder::default().setup(|app| {
         let root = app.path().app_local_data_dir()?;
         fs::create_dir_all(root.join(CORE_DIRECTORY))?; fs::create_dir_all(root.join("runs"))?;
+        #[cfg(target_os="macos")]
+        {
+            use std::os::{fd::AsRawFd, unix::fs::PermissionsExt};
+            fs::set_permissions(root.join("runs"), fs::Permissions::from_mode(0o700))?;
+            let lock = fs::OpenOptions::new().write(true).create(true).truncate(false).open(root.join("app.lock"))?;
+            if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+                return Err("Knotless is already running".into());
+            }
+            app.manage(lock);
+        }
         // Run files can contain credentials. Remove stale files belonging to Knotless on startup.
         for entry in fs::read_dir(root.join("runs"))?.flatten() { if entry.file_type()?.is_file() { let _ = fs::remove_file(entry.path()); } }
         let bundled_core=bundled_core::install(&root,&app.path().resource_dir()?)?;
         let subscriptions=subscriptions::load(&root);
         app.manage(AppState { root, bundled_core, runtime:Mutex::new(Runtime::default()), profile:Mutex::new(None),tray_toggle:Mutex::new(None),tray_open:Mutex::new(None),tray_quit:Mutex::new(None),language:Mutex::new("ru".into()),subscriptions:Mutex::new(subscriptions),telemetry:Mutex::new(monitor::Telemetry::default()),auto_reconnect:AtomicBool::new(true),busy:AtomicBool::new(false),closing:AtomicBool::new(false),minimize_to_tray:AtomicBool::new(true),probes:tokio::sync::Semaphore::new(3), installs:tokio::sync::Mutex::new(()) });
-        tray::setup(app)?;update_shutdown::start(app.handle().clone())?;monitor::start(app.handle().clone());subscriptions::start_scheduler(app.handle().clone()); Ok(())
+        tray::setup(app)?;#[cfg(windows)] update_shutdown::start(app.handle().clone())?;monitor::start(app.handle().clone());subscriptions::start_scheduler(app.handle().clone()); Ok(())
     }).invoke_handler(tauri::generate_handler![list_cores,list_releases,install_core,connect,disconnect,runtime_status,tcp_probe,https_probe,set_connection_profile,set_window_behavior,restart_as_admin,set_language,set_auto_reconnect,monitor::telemetry,subscriptions::get_hwid,subscriptions::list_subscriptions,subscriptions::add_subscription,subscriptions::configure_subscription,subscriptions::refresh_subscription,subscriptions::remove_subscription])
     .on_window_event(|window,event| {
         let state=window.state::<AppState>();
@@ -268,7 +286,7 @@ fn main() {
     .run(tauri::generate_context!()).expect("Could not start Knotless");
 }
 
-#[cfg(test)]
+#[cfg(all(test,windows))]
 mod tests {
     use super::*;
     #[test]

@@ -36,8 +36,6 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "resources/WINTUN-LICENSE.txt": "resources/WINTUN-LICENSE.txt",
-      "resources/bundled-xray/current/wintun.dll": "resources/wintun.dll",
       "resources/bundled-xray/current/xray/": "resources/xray/"
     },
     "windows": {
