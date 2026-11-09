@@ -7,6 +7,7 @@ import { serverLink } from './sharing';
 const id = '11111111-1111-4111-8111-111111111111';
 describe('server sharing', () => {
   it.each([
+    'type=xhttp&security=reality&sni=example.org&pbk=test&mode=auto&extra=%7B%22mode%22%3A%22auto%22%2C%22xPaddingBytes%22%3A%22100-1000%22%7D',
     'type=tcp&security=none',
     'type=raw&security=reality&sni=example.com&pbk=test-public-key&sid=abcd&spx=%2Fhello%3Fx%3D1&fp=chrome&flow=xtls-rprx-vision',
     'type=ws&security=tls&sni=example.com&host=cdn.example.com&path=%2Fws%3Fed%3D2048&alpn=h2%2Chttp%2F1.1&fp=firefox',

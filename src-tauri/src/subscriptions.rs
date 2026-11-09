@@ -50,7 +50,24 @@ fn supported_link(text:&str)->bool{
     if !["tcp","raw","ws","grpc","xhttp","httpupgrade"].contains(&transport.as_str())||!["none","tls","reality"].contains(&security.as_str()){return false;}
     if get("allowInsecure","")=="1"||get("insecure","")=="1"||get("encryption","none")!="none"{return false;}
     if security=="reality"&&(get("pbk","").is_empty()||get("sni","").is_empty()){return false;}
-    if transport=="xhttp"&&params.contains_key("extra"){return false;}
+    if transport=="xhttp" {
+        let extra = match params.get("extra") {
+            Some(raw) => match serde_json::from_str::<serde_json::Map<String, Value>>(raw) {
+                Ok(fields) if fields.keys().all(|k| matches!(k.as_str(),"mode"|"xPaddingBytes")) => fields,
+                _ => return false,
+            },
+            None => Default::default(),
+        };
+        let mode=params.get("mode").map(String::as_str).filter(|s|!s.is_empty()).or_else(||extra.get("mode").and_then(Value::as_str)).unwrap_or("auto");
+        if !matches!(mode,"auto"|"packet-up"|"stream-up"|"stream-one"){return false;}
+        let padding=match extra.get("xPaddingBytes") {
+            Some(Value::String(s))=>Some(s), None|Some(Value::Null)=>params.get("x_padding_bytes"), _=>return false,
+        };
+        if let Some(s)=padding {
+            let parts:Vec<_>=s.split('-').collect();
+            if parts.len()>2||parts.iter().any(|p|p.is_empty()||!p.bytes().all(|b|b.is_ascii_digit())){return false;}
+        }
+    }
     if ["tcp","raw"].contains(&transport.as_str())&&get("headerType","none")!="none"{return false;}true
 }
 async fn fetch(sub:&Subscription)->Result<String>{

@@ -23,7 +23,7 @@ The screenshot shows fictional servers on example.com domains. The connection is
 - DNS over TCP or DoH: Quad9 (default), Google, Cloudflare, OpenDNS, Yandex, or a custom resolver.
 - Live traffic statistics and graph, connection health checks, optional TUN recovery, tray menu, light and dark themes.
 
-## Version 0.3.9
+## Version 0.4.0
 
 TUN is selected on first launch; updates preserve the saved mode. Settings → TCP fragmentation optionally fragments the TLS ClientHello or the first three TCP writes to the VPN server. Set a fragment size in bytes and delay in milliseconds. Disabled by default; applies on the next connection and HTTPS test. Direct routes are unchanged. Requires Xray v26.10.31 or newer.
 

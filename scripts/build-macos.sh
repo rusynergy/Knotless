@@ -6,7 +6,7 @@ case "$(uname -m)" in
   x86_64) arch=x64; archive=Xray-macos-64.zip ;;
   *) exit 2 ;;
 esac
-version=v26.10.31
+version=v26.11.9
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 base="https://github.com/XTLS/Xray-core/releases/download/$version/$archive"
