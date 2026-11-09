@@ -20,7 +20,11 @@ export function serverLink(server: Server): string {
   }
   if (type === 'ws') { put('path', stream.wsSettings?.path); put('host', stream.wsSettings?.headers?.Host); }
   if (type === 'grpc') { put('serviceName', stream.grpcSettings?.serviceName); if (stream.grpcSettings?.multiMode) put('mode', 'multi'); }
-  if (type === 'xhttp') { put('path', stream.xhttpSettings?.path); put('host', stream.xhttpSettings?.host); put('mode', stream.xhttpSettings?.mode); }
+  if (type === 'xhttp') {
+    const settings = stream.xhttpSettings;
+    put('path', settings?.path); put('host', settings?.host); put('mode', settings?.mode);
+    if (settings?.xPaddingBytes != null) params.set('extra', JSON.stringify({ xPaddingBytes: settings.xPaddingBytes }));
+  }
   if (type === 'httpupgrade') { put('path', stream.httpupgradeSettings?.path); put('host', stream.httpupgradeSettings?.host); }
   const host = endpoint.address.includes(':') ? `[${endpoint.address}]` : endpoint.address;
   const link = `vless://${encodeURIComponent(user.id)}@${host}:${endpoint.port}?${params}#${encodeURIComponent(server.name)}`;

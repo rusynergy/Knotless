@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { parseVless, compileRouting, buildConfig } from './domain';
+import { parseVless, compileRouting, buildConfig, needsLegacyCoreHint } from './domain';
 const link = 'vless://4ce82b94-cf44-4415-879c-7a8c29925475@example.com:443?security=reality&sni=example.com&pbk=abc&fp=chrome&type=tcp#Test';
 describe('VLESS import', () => {
+  it.each([
+    ['203.0.113.5','none',true], ['203.0.113.5','tls',false], ['192.168.1.1','none',false],
+    ['[2001:db8::1]','none',true], ['[::ffff:10.0.0.1]','none',false], ['[fe80::1]','none',false],
+  ] as const)('checks legacy compatibility for %s with %s', (host, security, expected) => {
+    const server = parseVless(`vless://11111111-1111-4111-8111-111111111111@${host}:9443?security=${security}`);
+    expect(needsLegacyCoreHint(server)).toBe(expected);
+  });
   it('retains REALITY settings and name', () => { const s = parseVless(link); expect(s.name).toBe('Test'); expect(s.outbound.streamSettings).toMatchObject({ realitySettings: { publicKey: 'abc', serverName: 'example.com' } }); });
   it('rejects unsupported and insecure links instead of silently changing semantics', () => { expect(() => parseVless(link + '&')).not.toThrow(); expect(() => parseVless(link.replace('type=tcp', 'type=kcp'))).toThrow(); expect(() => parseVless(link.replace('fp=chrome', 'allowInsecure=1'))).toThrow(); expect(() => parseVless(link.replace('pbk=abc&', ''))).toThrow(); });
 });

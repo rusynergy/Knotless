@@ -1726,10 +1726,12 @@ dependencies = [
 
 [[package]]
 name = "knotless"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "base64 0.22.1",
+ "libc",
  "reqwest 0.12.28",
+ "semver",
  "serde",
  "serde_json",
  "sha2",

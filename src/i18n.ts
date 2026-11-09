@@ -1,6 +1,9 @@
 export type Language = 'ru' | 'en' | 'zh';
 export const languages: Language[] = ['ru', 'en', 'zh'];
 const messages = {
+  downloadUpdate:['Скачать обновление Knotless','Download Knotless update','下载 Knotless 更新'],
+  legacyCoreHint:['Xray 26.10.31 отклоняет VLESS без шифрования на публичный IP. Для такого профиля можно выбрать Xray 25.12.8 и режим «Локальный прокси».','Xray 26.10.31 rejects unencrypted VLESS connections to public IP addresses. For this profile, you can select Xray 25.12.8 and local proxy mode.','Xray 26.10.31 不允许通过未加密的 VLESS 连接到公网 IP。此配置可使用 Xray 25.12.8 和本地代理模式。'],
+  macTunHint:['Для TUN выберите комплектный Xray. macOS запросит права администратора при подключении.','Select the bundled Xray for TUN. macOS requests administrator privileges when connecting.','使用 TUN 时请选择内置 Xray。macOS 会在连接时请求管理员权限。'],
   fragmentTitle:['Фрагментация TCP','TCP fragmentation','TCP 分片'],
   fragmentEnable:['Включить фрагментацию','Enable fragmentation','启用分片'],
   fragmentHint:['Для TCP-соединения с VPN-сервером. Применяется при следующем подключении и HTTPS-проверке. Требуется Xray v26.10.31 или новее.','Applies to the TCP connection to the VPN server on the next connection or HTTPS test. Requires Xray v26.10.31 or newer.','用于连接 VPN 服务器的 TCP 连接，下次连接或 HTTPS 测试时生效。需要 Xray v26.10.31 或更高版本。'],

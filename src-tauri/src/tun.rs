@@ -22,6 +22,18 @@ pub fn add_with_dns(config:&mut Value,dns:&crate::dns::Settings) -> Result<()> {
             "autoOutboundsInterface":"auto", "autoSystemWfpBlockLeak":if dns.leak_protection{vec!["dns","misconfigtun"]}else{vec!["misconfigtun"]} },
         "sniffing":{"enabled":true,"destOverride":["http","tls","quic"],"routeOnly":true}
     }));
+    #[cfg(target_os="macos")]
+    {
+        let existing=std::process::Command::new("/sbin/ifconfig").arg("-l").output().map_err(err)?;
+        if !existing.status.success(){return Err("Cannot enumerate utun interfaces".into());}
+        let names=String::from_utf8_lossy(&existing.stdout);
+        let name=(0..256).map(|n|format!("utun{n}")).find(|n|!names.split_whitespace().any(|s|s==n)).ok_or("No available utun interface")?;
+        let inbound=config["inbounds"].as_array_mut().unwrap().last_mut().unwrap();
+        let settings=inbound["settings"].as_object_mut().unwrap();
+        settings.remove("autoSystemWfpBlockLeak"); settings.remove("dns");
+        settings.insert("name".into(),json!(name));
+        settings.insert("gateway".into(),json!(["172.31.255.1/30"]));
+    }
     crate::dns::configure(config,dns)?;
     Ok(())
 }

@@ -1,0 +1,8 @@
+{
+  "bundle": {
+    "resources": {
+      "resources/WINTUN-LICENSE.txt": "resources/WINTUN-LICENSE.txt",
+      "resources/bundled-xray/current/wintun.dll": "resources/wintun.dll"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 use crate::*;
 use base64::{Engine,engine::general_purpose::{STANDARD,STANDARD_NO_PAD,URL_SAFE,URL_SAFE_NO_PAD}};
 use std::{collections::HashSet,time::{SystemTime,UNIX_EPOCH}};
-use winreg::{RegKey,enums::{HKEY_LOCAL_MACHINE,KEY_READ,KEY_WOW64_64KEY}};
+#[cfg(windows)] use winreg::{RegKey,enums::{HKEY_LOCAL_MACHINE,KEY_READ,KEY_WOW64_64KEY}};
 
 #[derive(Clone,Serialize,Deserialize)] #[serde(rename_all="camelCase")]
 pub struct Subscription {
@@ -17,8 +17,13 @@ fn save(root:&Path,store:&Store)->Result<()>{
     fs::rename(&temp,&path).map_err(err)?;Ok(())
 }
 #[tauri::command] pub fn get_hwid()->Result<String>{
-    let key=RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey_with_flags("SOFTWARE\\Microsoft\\Cryptography",KEY_READ|KEY_WOW64_64KEY).map_err(|_|"HWID_UNAVAILABLE")?;
-    let guid:String=key.get_value("MachineGuid").map_err(|_|"HWID_UNAVAILABLE")?;
+    #[cfg(windows)] let key=RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey_with_flags("SOFTWARE\\Microsoft\\Cryptography",KEY_READ|KEY_WOW64_64KEY).map_err(|_|"HWID_UNAVAILABLE")?;
+    #[cfg(windows)] let guid:String=key.get_value("MachineGuid").map_err(|_|"HWID_UNAVAILABLE")?;
+    #[cfg(target_os="macos")]
+    let guid = {
+        let output=Command::new("/usr/sbin/ioreg").args(["-rd1","-c","IOPlatformExpertDevice"]).output().map_err(err)?;
+        String::from_utf8_lossy(&output.stdout).lines().find_map(|s|s.split_once("\"IOPlatformUUID\" = ")).map(|(_,s)|s.trim().trim_matches('"').to_owned()).ok_or("HWID_UNAVAILABLE")?
+    };
     Ok(format!("{:x}",Sha256::digest(format!("Knotless:device:v1:{}",guid.to_lowercase()))))
 }
 fn validate_url(url:&str)->Result<reqwest::Url>{
@@ -45,7 +50,24 @@ fn supported_link(text:&str)->bool{
     if !["tcp","raw","ws","grpc","xhttp","httpupgrade"].contains(&transport.as_str())||!["none","tls","reality"].contains(&security.as_str()){return false;}
     if get("allowInsecure","")=="1"||get("insecure","")=="1"||get("encryption","none")!="none"{return false;}
     if security=="reality"&&(get("pbk","").is_empty()||get("sni","").is_empty()){return false;}
-    if transport=="xhttp"&&params.contains_key("extra"){return false;}
+    if transport=="xhttp" {
+        let extra = match params.get("extra") {
+            Some(raw) => match serde_json::from_str::<serde_json::Map<String, Value>>(raw) {
+                Ok(fields) if fields.keys().all(|k| matches!(k.as_str(),"mode"|"xPaddingBytes")) => fields,
+                _ => return false,
+            },
+            None => Default::default(),
+        };
+        let mode=params.get("mode").map(String::as_str).filter(|s|!s.is_empty()).or_else(||extra.get("mode").and_then(Value::as_str)).unwrap_or("auto");
+        if !matches!(mode,"auto"|"packet-up"|"stream-up"|"stream-one"){return false;}
+        let padding=match extra.get("xPaddingBytes") {
+            Some(Value::String(s))=>Some(s), None|Some(Value::Null)=>params.get("x_padding_bytes"), _=>return false,
+        };
+        if let Some(s)=padding {
+            let parts:Vec<_>=s.split('-').collect();
+            if parts.len()>2||parts.iter().any(|p|p.is_empty()||!p.bytes().all(|b|b.is_ascii_digit())){return false;}
+        }
+    }
     if ["tcp","raw"].contains(&transport.as_str())&&get("headerType","none")!="none"{return false;}true
 }
 async fn fetch(sub:&Subscription)->Result<String>{
@@ -53,7 +75,7 @@ async fn fetch(sub:&Subscription)->Result<String>{
     // Do not send a device identifier or secret subscription token across redirects.
     let client=reqwest::Client::builder().no_proxy().redirect(reqwest::redirect::Policy::none()).timeout(Duration::from_secs(25)).user_agent("Knotless/0.3.0").build().map_err(err)?;
     let mut request=client.get(url).header("Accept","text/plain");
-    if sub.send_hwid{request=request.header("x-hwid",get_hwid()?).header("x-device-os","Windows").header("x-device-model","Windows PC");}
+    if sub.send_hwid{request=request.header("x-hwid",get_hwid()?).header("x-device-os",if cfg!(windows){"Windows"}else{"macOS"}).header("x-device-model",if cfg!(windows){"Windows PC"}else{"Mac"});}
     let mut response=request.send().await.map_err(|_|"SUB_NETWORK")?;
     if response.headers().get("x-hwid-not-supported").is_some(){return Err("SUB_HWID_REQUIRED".into());}
     if response.status().is_redirection(){return Err("SUB_REDIRECT".into());}

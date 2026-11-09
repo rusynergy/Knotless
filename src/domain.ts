@@ -4,6 +4,24 @@ export type Server = { id: string; name: string; host: string; port: number; pro
 export type Rule = { type: 'field'; outboundTag: string; domain?: string[]; ip?: string[]; port?: string; network?: string };
 export const DEFAULT_RULES = '# Правила применяются сверху вниз\n# Действия: proxy, direct, block\ndefault: proxy\n\nip(geoip:private) -> direct\n';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function needsLegacyCoreHint(server: Server): boolean {
+  // parseVless currently accepts only encryption=none.
+  if (server.security !== 'none') return false;
+  let host = server.host;
+  if (host.includes(':')) {
+    // URL parsing canonicalizes IPv6 literals, including IPv4-mapped addresses.
+    const mapped = /^::ffff:([\da-f]+):([\da-f]+)$/i.exec(host);
+    if (!mapped) return host !== '::1' && !/^(?:f[cd]|fe[89ab])/i.test(host);
+    const high = parseInt(mapped[1], 16), low = parseInt(mapped[2], 16);
+    host = [high >> 8, high & 255, low >> 8, low & 255].join('.');
+  }
+  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return false;
+  const octets = host.split('.').map(Number);
+  if (octets.some(n => n > 255)) return false;
+  const [a,b] = octets;
+  return !(a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) || (a === 169 && b === 254));
+}
 export function parseVless(text: string): Server {
   let u: URL;
   try { u = new URL(text.trim()); } catch { throw new Error('Некорректная ссылка сервера.'); }
@@ -29,8 +47,20 @@ export function parseVless(text: string): Server {
   if (transport === 'ws') stream.wsSettings = { path: p.get('path') || '/', headers: p.get('host') ? { Host: p.get('host') } : {} };
   if (transport === 'grpc') stream.grpcSettings = { serviceName: p.get('serviceName') || '', multiMode: p.get('mode') === 'multi' };
   if (transport === 'xhttp') {
-    if (p.has('extra')) throw new Error('Расширенные XHTTP extra пока не поддерживаются.');
-    stream.xhttpSettings = { path: p.get('path') || '/', host: p.get('host') || '', mode: p.get('mode') || 'auto' };
+    let extra: Record<string, unknown> = {};
+    if (p.has('extra')) {
+      try { extra = JSON.parse(p.get('extra')!); }
+      catch { throw new Error('Параметр XHTTP extra должен содержать JSON-объект.'); }
+      if (!extra || typeof extra !== 'object' || Array.isArray(extra) ||
+          Object.keys(extra).some(key => !['mode', 'xPaddingBytes'].includes(key))) {
+        throw new Error('В XHTTP extra поддерживаются mode и xPaddingBytes.');
+      }
+    }
+    const mode = p.get('mode') || extra.mode || 'auto';
+    if (!['auto', 'packet-up', 'stream-up', 'stream-one'].some(value => value === mode)) throw new Error('Некорректный режим XHTTP.');
+    const padding = extra.xPaddingBytes ?? p.get('x_padding_bytes');
+    if (padding != null && (typeof padding !== 'string' || !/^\d+(?:-\d+)?$/.test(padding))) throw new Error('Некорректный xPaddingBytes.');
+    stream.xhttpSettings = { path: p.get('path') || '/', host: p.get('host') || '', mode, ...(padding != null ? { xPaddingBytes: padding } : {}) };
   }
   if (transport === 'httpupgrade') stream.httpupgradeSettings = { path: p.get('path') || '/', host: p.get('host') || host };
   if (['tcp', 'raw'].includes(transport) && p.get('headerType') && p.get('headerType') !== 'none') throw new Error('TCP headerType пока не поддерживается.');
